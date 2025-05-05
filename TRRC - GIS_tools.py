@@ -6,50 +6,48 @@ import geopandas as gpd
 import pandas as pd
 from glob import glob
 from dbfread import DBF
+import warnings
+warnings.filterwarnings("ignore", message=".*Measured.*geometry types are not supported.*")
+warnings.filterwarnings("ignore", message=".*Normalized/laundered field name.*")
 
 
 # ---------- Extraction Function ----------
 def extract_zip_files(input_dir):
+
     for root, dirs, files in os.walk(input_dir):
         for file in files:
             if file.lower().endswith('.zip'):
                 file_path = os.path.join(root, file)
-                print(f"📦 Extracting: {file_path}")
+                # print(f"📦 Extracting: {file_path}")
                 try:
                     with zipfile.ZipFile(file_path, 'r') as zip_ref:
                         zip_ref.extractall(root)
-                    print(f'✅ Extracted: {file}')
+                    # print(f'✅ Extracted: {file}')
                     # os.remove(file_path)
                     # print(f'🗑️ Deleted zip: {file}')
                 except zipfile.BadZipFile:
                     print(f'❌ Bad zip file: {file_path} — not deleted')
-    print('✅ Extraction phase complete.\n')
-
 
 # ---------- Organization Function ----------
 def organize_shapefiles_by_prefix_and_suffix(root_dir):
+
     prefix_mapping = {
         'air': 'Airports', 'cem': 'Cemeteries', 'cit': 'Cities', 'cty': 'Counties',
         'gov': 'Government_Lands', 'offs': 'OffshoreSurveys', 'pipe': 'Pipelines',
         'rail': 'Railroads', 'road': 'Roads', 'ship': 'ShipChannels',
-        'subd': 'Subdivisions', 'surv': 'Surveys', 'watr': 'Water', 'well': 'Wells'
-    }
-
+        'subd': 'Subdivisions', 'surv': 'Surveys', 'watr': 'Water', 'well': 'Wells'}
     suffix_mapping = {
-        'l': 'ln', 'p': 'poly', 'g': 'Cnty_poly_named', 'i': 'GulfAreas_poly',
+        'l': 'line', 'p': 'poly', 'g': 'Cnty_poly_named', 'i': 'GulfAreas_poly',
         'k': 'Cnty_poly_unnamed', 'Labpt': 'Label_pts', 'Abspt': 'Abs_pts',
-        'b': 'BayTrct_poly', 'a': 'area', 's': 'SHL_pts'
-    }
-
+        'b': 'BayTrct_poly', 'a': 'area', 's': 'SHL_pts'}
     special_cases = {
-        'well': {'s': 'SHLpts', 'b': 'BHLpts', 'l': 'PATHln'},
-        'surv': {'l': 'Surv_ln', 'p': 'Surv_poly', 'b': 'BayTrct_poly',
+        'well': {'s': 'SHLpts', 'b': 'BHLpts', 'l': 'PATHline'},
+        'surv': {'l': 'Surv_line', 'p': 'Surv_poly', 'b': 'BayTrct_poly',
                  'Abspt': 'Abs_pts', 'Labpt': 'Surv_Label_pts'},
-        'subd': {'l': 'Subd_ln', 'Labpt': 'Subd_Label_pts'},
-        'watr': {'l': 'Wtr_ln', 'a': 'Wtr_area'},
-        'offs': {'a': 'OffSh_Surv_poly'}
-    }
-
+        'subd': {'l': 'Subd_line', 'Labpt': 'Subd_Label_pts'},
+        'watr': {'l': 'Wtr_line', 'a': 'Wtr_area'},
+        'offs': {'a': 'OffSh_Surv_poly'}}
+    
     shapefile_extensions = ['.shp', '.shx', '.dbf', '.prj', '.sbn', '.sbx', '.cpg', '.shp.xml']
     all_files = os.listdir(root_dir)
     base_names = set()
@@ -69,7 +67,7 @@ def organize_shapefiles_by_prefix_and_suffix(root_dir):
         prefix_match = ''.join(filter(str.isalpha, base[:6])).lower()
         prefix_folder = prefix_mapping.get(prefix_match)
         if not prefix_folder:
-            print(f"⚠️ Skipping {base} — unknown prefix '{prefix_match}'")
+            # print(f"⚠️ Skipping {base} — unknown prefix '{prefix_match}'")
             continue
 
         prefix_path = os.path.join(root_dir, prefix_folder)
@@ -101,12 +99,12 @@ def organize_shapefiles_by_prefix_and_suffix(root_dir):
             file_path = os.path.join(root_dir, file_name)
             if os.path.exists(file_path):
                 shutil.move(file_path, os.path.join(full_suffix_path, file_name))
-                print(f"✅ Moved {file_name} -> {prefix_folder}/{suffix_folder}")
-    print('✅ Organization phase complete.\n')
+                # print(f"✅ Moved {file_name} -> {prefix_folder}/{suffix_folder}")
 
 
 # --- Apply WellStatus Based on SymNum ---
 def apply_well_status_to_shapefiles(root_dir):
+    
     symnum_map = {
     2: "Permitted Location", 3: "Dry Hole", 4: "Oil Well", 5: "Gas Well", 6: "Oil/Gas Well",
     7: "Plugged Oil Well", 8: "Plugged Gas Well", 9: "Canceled Location", 10: "Plugged Oil/Gas Well",
@@ -147,8 +145,8 @@ def apply_well_status_to_shapefiles(root_dir):
     150: "Observation from Storage/Brine Mining/Gas",
     151: "Observation from Storage/Brine Mining/Oil/Gas",
     152: "Plugged Storage/Brine Mining", 153: "Plugged Storage/Brine Mining/Oil",
-    154: "Plugged Storage/Brine Mining/Gas", 155: "Plugged Storage/Brine Mining/Oil/Gas"
-}
+    154: "Plugged Storage/Brine Mining/Gas", 155: "Plugged Storage/Brine Mining/Oil/Gas"}
+    
     for dirpath, _, filenames in os.walk(root_dir):
         for file in filenames:
             if file.lower().endswith(".shp") and file.lower().startswith("well"):
@@ -156,18 +154,18 @@ def apply_well_status_to_shapefiles(root_dir):
                 try:
                     gdf = gpd.read_file(shp_path)
 
-                    # Print all column names for debug
-                    print(f"🔍 Columns in {file}: {list(gdf.columns)}")
+                    # # Print all column names for debug
+                    # print(f"🔍 Columns in {file}: {list(gdf.columns)}")
 
                     # Find column matching 'SymNum' (case-insensitive)
                     sym_field = next((col for col in gdf.columns if col.strip().lower() == "symnum"), None)
                     if not sym_field:
-                        print(f"⚠️ 'SymNum' not found in {file}, skipping.")
+                        # print(f"⚠️ 'SymNum' not found in {file}, skipping.")
                         continue
 
                     gdf["Well_Status"] = gdf[sym_field].map(symnum_map)
+                    gdf.rename(columns={"Well_Status": "WELLSTAT"}, inplace=True)
                     gdf.to_file(shp_path, driver="ESRI Shapefile")
-                    print(f"✅ Added 'Well_Status' to {file}")
 
                 except Exception as e:
                     print(f"❌ Failed to process {file}: {e}")
@@ -211,10 +209,8 @@ def join_api_dbf_to_well_shapes(root_dir):
                     gdf_joined = gdf.merge(df_dbf, how='left', on='API')
                     gdf_joined.to_file(shp_path, driver='ESRI Shapefile')
 
-                    print(f"🔗 Joined {os.path.basename(dbf_path)} → {shp_file}")
                 except Exception as e:
                     print(f"❌ Error processing {shp_file}: {e}")
-    print(f"\n✅ API DBF join phase complete." )
 
 
 # ---------- Merge Function ----------
@@ -236,23 +232,39 @@ def merge_shapefiles_by_folder(x_directory):
         for shp in shapefiles:
             try:
                 gdf = gpd.read_file(shp)
-                gdf['source_file'] = os.path.basename(shp)
+                gdf['SRC_FILE'] = os.path.basename(shp)
+
+                # Cull unnecessary columns (case-insensitive matching)
+                columns_to_drop = ["Quadnum", "Refer_to_A", "on_off_sch", "block"]
+                lower_cols = {col.lower(): col for col in gdf.columns}
+                cols_found = [lower_cols[c.lower()] for c in columns_to_drop if c.lower() in lower_cols]
+                if cols_found:
+                    gdf.drop(columns=cols_found, inplace=True)
+                    # print(f"🧹 Dropped columns from {os.path.basename(shp)}: {', '.join(cols_found)}")
+
                 gdf_list.append(gdf)
             except Exception as e:
-                print(f"Error reading {shp}: {e}")
+                print(f"❌ Error reading {shp}: {e}")
 
         if gdf_list:
             try:
                 merged = gpd.GeoDataFrame(pd.concat(gdf_list, ignore_index=True), crs=gdf_list[0].crs)
+
+                # Drop full-row duplicates
+                merged.drop_duplicates(inplace=True)
+
+                # Truncate column names to 10 characters for .shp
+                merged.columns = [col[:10] for col in merged.columns]
+
                 merged_dir = os.path.join(current_dir, "MergedFiles")
                 os.makedirs(merged_dir, exist_ok=True)
 
                 output_file = os.path.join(merged_dir, f"{combined}_Merge.shp")
                 merged.to_file(output_file)
-                print(f"✅ Merged {len(shapefiles)} shapefiles in {current_dir}")
+
             except Exception as e:
                 print(f"❌ Error merging in {current_dir}: {e}")
-    print('✅ Merge phase complete.\n')
+
 
 
 def write_merged_shapefiles_to_gpkg(root_dir: str, output_gpkg: str):
@@ -263,7 +275,6 @@ def write_merged_shapefiles_to_gpkg(root_dir: str, output_gpkg: str):
     merged_count = 0
     for dirpath, _, filenames in os.walk(root_dir):
         if os.path.basename(dirpath).lower() == "mergedfiles":
-            print(f"🔍 Found MergedFiles: {dirpath}")
             shapefiles = [f for f in os.listdir(dirpath) if f.lower().endswith(".shp")]
 
             if not shapefiles:
@@ -289,12 +300,10 @@ def write_merged_shapefiles_to_gpkg(root_dir: str, output_gpkg: str):
                     layer_name = "_".join(parts).replace("-", "_")
 
                     gdf_merged.to_file(output_gpkg, layer=layer_name, driver="GPKG")
-                    print(f"✅ Saved: {layer_name} ({len(gdf_merged)} features)")
+                    # print(f"✅ Saved: {layer_name} ({len(gdf_merged)} features)")
                     merged_count += 1
                 except Exception as e:
                     print(f"❌ Failed to save layer from {dirpath}: {e}")
-
-    print(f"\n🎉 Finished. {merged_count} layers written to {output_gpkg}\n")
 
 
 # ---------- Single Main Entry Point ----------
@@ -327,26 +336,35 @@ if __name__ == "__main__":
         print(f"❌ Invalid directory: {input_dir}")
     else:
         # Extract zip files
+        print("\nStarting extraction of zip files...")
         extract_zip_files(input_dir)
-        
+        print('✅ Extraction phase complete.\n')    
+
         # Organize shapefiles by prefix and suffix
+        print("Starting organization of shapefiles...")
         organize_shapefiles_by_prefix_and_suffix(input_dir)
+        print('✅ Organization phase complete.\n')
         
         # Apply well status based on SymNum
+        print("🔧 Starting well status translation...")
         apply_well_status_to_shapefiles(input_dir)
+        print('✅ Well status translation phase complete.\n')
 
         # Join API DBF files to well shapefiles
-        print("🔗 Starting DBF joins...")
+        print("Starting API DBF joins...")
         join_api_dbf_to_well_shapes(input_dir)
+        print('✅ API DBF join phase complete.\n')
 
         # Merge shapefiles by folder
-        print("🧩 Starting shapefile merges...")
+        print("Starting shapefile merges...")
         merge_shapefiles_by_folder(input_dir)
+        print('✅ Shapefile merge phase complete.\n')
 
         # Write to GeoPackage after merges
-        print(f"📦 Writing merged layers to: {output_gpkg}")
-
+        print("Writing merged layers to GeoPackage...")
         output_gpkg = os.path.join(input_dir, "TRRC_MergedLayers.gpkg")
+        print(f"Writing merged layers to: {output_gpkg}")
         write_merged_shapefiles_to_gpkg(input_dir, output_gpkg)
+        print('✅ GeoPackage creation phase complete.\n')
 
-        print('🎉 All operations completed successfully!')
+        print('All operations completed successfully!')
