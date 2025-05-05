@@ -22,3 +22,28 @@ This Python script automates the extraction, organization, enhancement, merging,
 
 ```bash
 pip install geopandas pandas dbfread
+
+
+🛠 How to Use
+
+    Extract the .zip files from TRRC into a directory of your choice.
+
+    Run the script:
+
+python trrc_gis_pipeline.py
+
+    When prompted, enter the path to the directory where shapefiles were extracted.
+
+    The script will:
+
+        Extract any remaining .zip files
+
+        Organize the shapefiles into folders
+
+        Join well attribute data
+
+        Apply well status labels
+
+        Merge shapefiles by folder
+
+        Output a TRRC_MergedLayers.gpkg GeoPackage
