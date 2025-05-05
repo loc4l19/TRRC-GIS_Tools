@@ -56,6 +56,8 @@ The script will:
     
     F. Outputs a TRRC_MergedLayers.gpkg GeoPackage
 
+---
+
 ## 🗂 Available TRRC Shapefile Types
 
 The Texas Railroad Commission (TRRC) provides a wide range of GIS shapefiles related to oil and gas infrastructure, environmental boundaries, and regulatory data. These shapefiles are organized by file name prefixes that correspond to specific feature categories. This script automatically sorts and organizes them using the following classification:
@@ -91,11 +93,14 @@ Example shapefile filename:
 The script recognizes these patterns and sorts files accordingly into subfolders to make the dataset more navigable and ready for GIS analysis.
 
 ---
+
 ## ⚠️ Note on Well Attributes
 
 TRRC well shapefiles do not include detailed well information such as operator, field name, permit number, or completion date.
 
 These attributes are stored in separate .dbf files, which must be joined using the API or APINUM field. This script automates that join process, enriching well shapefiles with key metadata from the API-based .dbf files.
+
+---
 
 ## 📁 What is the `1-SourceData` Folder?
 
