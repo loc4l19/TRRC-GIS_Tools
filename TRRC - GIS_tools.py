@@ -11,22 +11,29 @@ warnings.filterwarnings("ignore", message=".*Measured.*geometry types are not su
 warnings.filterwarnings("ignore", message=".*Normalized/laundered field name.*")
 
 
-# ---------- Extraction Function ----------
 def extract_zip_files(input_dir):
+    source_data_dir = os.path.join(input_dir, "1-SourceData")
+    os.makedirs(source_data_dir, exist_ok=True)
 
     for root, dirs, files in os.walk(input_dir):
+        # Skip the SourceData folder to avoid reprocessing moved zips
+        if os.path.abspath(source_data_dir) in [os.path.abspath(os.path.join(root, d)) for d in dirs]:
+            dirs.remove(os.path.basename(source_data_dir))
+
         for file in files:
             if file.lower().endswith('.zip'):
                 file_path = os.path.join(root, file)
-                # print(f"📦 Extracting: {file_path}")
                 try:
                     with zipfile.ZipFile(file_path, 'r') as zip_ref:
                         zip_ref.extractall(root)
-                    # print(f'✅ Extracted: {file}')
-                    # os.remove(file_path)
-                    # print(f'🗑️ Deleted zip: {file}')
+
+                    # Move the .zip file to SourceData after extraction
+                    dest_path = os.path.join(source_data_dir, file)
+                    shutil.move(file_path, dest_path)
+
                 except zipfile.BadZipFile:
-                    print(f'❌ Bad zip file: {file_path} — not deleted')
+                    print(f'❌ Bad zip file: {file_path} — not moved')
+
 
 # ---------- Organization Function ----------
 def organize_shapefiles_by_prefix_and_suffix(root_dir):
@@ -173,10 +180,17 @@ def apply_well_status_to_shapefiles(root_dir):
 
 # ---------- DBF Join Function ----------
 def join_api_dbf_to_well_shapes(root_dir):
+    # Create SourceData folder if it doesn't exist
+    source_data_dir = os.path.join(root_dir, "SourceData")
+    os.makedirs(source_data_dir, exist_ok=True)
+
     # Gather all DBFs in the root directory
     root_dbfs = {os.path.splitext(f)[0]: os.path.join(root_dir, f)
                  for f in os.listdir(root_dir)
                  if f.lower().endswith('.dbf') and f.lower().startswith('api')}
+
+    # Track which DBFs were successfully joined
+    used_dbfs = set()
 
     # Walk subfolders and process shapefiles
     for dirpath, _, filenames in os.walk(root_dir):
@@ -203,14 +217,26 @@ def join_api_dbf_to_well_shapes(root_dir):
                     if 'API' not in gdf.columns:
                         print(f"⚠️ 'API' not found in {shp_file}")
                         continue
+
                     df_dbf = df_dbf.rename(columns={'APINUM': 'API'})
 
                     # Join and overwrite
                     gdf_joined = gdf.merge(df_dbf, how='left', on='API')
                     gdf_joined.to_file(shp_path, driver='ESRI Shapefile')
 
+                    used_dbfs.add(dbf_path)
+                    print(f"Joined {dbf_key}.dbf to {shp_file}")
+
                 except Exception as e:
                     print(f"❌ Error processing {shp_file}: {e}")
+
+    # Move all used DBFs to SourceData
+    for dbf_path in used_dbfs:
+        try:
+            shutil.move(dbf_path, os.path.join(source_data_dir, os.path.basename(dbf_path)))
+            # print(f"📁 Moved {os.path.basename(dbf_path)} to SourceData")
+        except Exception as e:
+            print(f"❌ Failed to move {os.path.basename(dbf_path)}: {e}")
 
 
 # ---------- Merge Function ----------
@@ -250,21 +276,15 @@ def merge_shapefiles_by_folder(x_directory):
             try:
                 merged = gpd.GeoDataFrame(pd.concat(gdf_list, ignore_index=True), crs=gdf_list[0].crs)
 
-                # Drop full-row duplicates
-                merged.drop_duplicates(inplace=True)
-
-                # Truncate column names to 10 characters for .shp
-                merged.columns = [col[:10] for col in merged.columns]
-
                 merged_dir = os.path.join(current_dir, "MergedFiles")
                 os.makedirs(merged_dir, exist_ok=True)
 
                 output_file = os.path.join(merged_dir, f"{combined}_Merge.shp")
                 merged.to_file(output_file)
+                print(f"✅ Merged {len(gdf_list)} shapefiles into: {output_file}")
 
             except Exception as e:
                 print(f"❌ Error merging in {current_dir}: {e}")
-
 
 
 def write_merged_shapefiles_to_gpkg(root_dir: str, output_gpkg: str):
@@ -351,7 +371,7 @@ if __name__ == "__main__":
         print('✅ Well status translation phase complete.\n')
 
         # Join API DBF files to well shapefiles
-        print("Starting API DBF joins...")
+        print("Starting API.dbf joins...")
         join_api_dbf_to_well_shapes(input_dir)
         print('✅ API DBF join phase complete.\n')
 
