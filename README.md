@@ -96,3 +96,16 @@ The script recognizes these patterns and sorts files accordingly into subfolders
 TRRC well shapefiles do not include detailed well information such as operator, field name, permit number, or completion date.
 
 These attributes are stored in separate .dbf files, which must be joined using the API or APINUM field. This script automates that join process, enriching well shapefiles with key metadata from the API-based .dbf files.
+
+## 📁 What is the `1-SourceData` Folder?
+
+During processing, this script creates a folder named `1-SourceData` inside your input directory. It serves as a holding area for:
+
+- All original `.zip` files after successful extraction
+- All `.dbf` files used during API joins
+
+This helps maintain a clean workspace by separating source data from processed shapefiles and merged outputs. You can use this folder for:
+- Archiving downloaded TRRC files
+- Verifying original inputs used in your workflow
+- Sharing source material separately from GIS-ready layers
+
