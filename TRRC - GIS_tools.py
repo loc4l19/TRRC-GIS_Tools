@@ -1,4 +1,5 @@
 import os
+import sys
 import zipfile
 import shutil
 import geopandas as gpd
@@ -298,17 +299,26 @@ def write_merged_shapefiles_to_gpkg(root_dir: str, output_gpkg: str):
 
 # ---------- Single Main Entry Point ----------
 if __name__ == "__main__":
-    print("\n📥 Required TRRC GIS Data Downloads")
+ # ---- System Requirements ----
+    print("\nScript Requirements")
     print("-------------------------------------")
-    print("To use this script, please make sure you've downloaded the required datasets from the Texas Railroad Commission (TRRC):\n")
+    print(f"Python Version: 3.8 or higher (you are using: {sys.version.split()[0]})")
+    print("Required pip packages:")
+    print("pip install geopandas pandas dbfread\n\n")
+
+    # ---- TRRC Download Instructions ----
+    print("Required TRRC GIS Data Downloads")
+    print("-------------------------------------")
+    print("Shapefile Data (wells, roads, pipelines, etc.):")
+    print("https://mft.rrc.texas.gov/link/f9112008-ab1f-4550-94c9-e2546d1bbb59\n")
     
-    print("  • 🔹 Shapefile Data (wells, roads, pipelines, etc.):")
-    print("    👉 Visit: https://mft.rrc.texas.gov/link/f9112008-ab1f-4550-94c9-e2546d1bbb59")
-    print("    📁 Extract the downloaded Zip file into your input folder before running this script.\n")
-    
-    print("  • 🔹 Well Attribute Data (used for API joins):")
-    print("    👉 Visit: https://mft.rrc.texas.gov/link/1eb94d66-461d-4114-93f7-b4bc04a70674")
-    print("    📁 Extract the downloaded Zip file (e.g., api123456.dbf) directly in the root of your input folder.\n")
+    print("Well Attribute Data (used for API joins):")
+    print("https://mft.rrc.texas.gov/link/1eb94d66-461d-4114-93f7-b4bc04a70674\n\n")
+
+    print("The check boxs in the upper right hand corner of the pages will allow you to select all shapefiles at once.")
+    print("Download buttons will appear in the lower right hand corner of the page.\n\n")
+    print("Extract downloaded .zip files into the desired folder before running this script.\n\n")
+
 
     input_dir = input('📂 Enter the directory to extract and organize shapefiles: ').strip()
     ...
